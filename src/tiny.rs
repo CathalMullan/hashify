@@ -57,7 +57,6 @@ pub fn build_tiny_map(
         (
             quote! {
                 let __key = #name;
-                let mut __matched = true;
             },
             quote! {
                 if !__matched {
@@ -90,8 +89,9 @@ pub fn build_tiny_map(
 
         TokenStream::from(quote! {{
             #header
+            let mut __matched = (#min_key_size..=#max_key_size).contains(&__key.len());
 
-           if (#min_key_size..=#max_key_size).contains(&__key.len()) {
+           if __matched {
                #table
            } #else_cond
         }})
@@ -120,7 +120,7 @@ pub fn build_tiny_map(
                         panic!(
                             "Failed to build lookup table for {} keys: {:?}",
                             keys.len(),
-                            keys.iter().map(|(k, _)| k).collect::<Vec<_>>()
+                            keys.keys().collect::<Vec<_>>()
                         )
                     });
                 quote! { #size => { #table } }
@@ -129,6 +129,7 @@ pub fn build_tiny_map(
 
         TokenStream::from(quote! {{
            #header
+           let mut __matched = true;
 
            match __key.len() {
                #(#match_arms)*

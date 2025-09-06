@@ -5,21 +5,29 @@
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  */
 
+#[cfg(any(target_pointer_width = "32", feature = "force-32bit"))]
+mod large_32;
+#[cfg(any(target_pointer_width = "32", feature = "force-32bit"))]
+use large_32::build_map;
+
+#[cfg(all(target_pointer_width = "64", not(feature = "force-32bit")))]
 mod large;
+#[cfg(all(target_pointer_width = "64", not(feature = "force-32bit")))]
+use large::build_map;
+
 mod tiny;
 
-use std::collections::HashMap;
-
-use large::build_map;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
+use std::collections::HashMap;
 use syn::punctuated::Punctuated;
-use syn::{
-    parse::{Parse, ParseStream},
-    parse_macro_input, Expr, Result, Token,
-};
 use syn::{Error, ExprLit, Lit, LitByteStr, UnOp};
-use tiny::{build_tiny_map, Value};
+use syn::{
+    Expr, Result, Token,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+};
+use tiny::{Value, build_tiny_map};
 
 enum ParsedKey {
     Str(String),

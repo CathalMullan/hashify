@@ -5145,6 +5145,20 @@ fn main() {
     );
     assert_eq!(value, 2);
 
+    let mut value = 1;
+    hashify::fnc_map_ignore_case!("other".as_bytes(),
+        "ALL" => {
+           value = 2;
+        },
+        "FULL" => {
+            value = 3;
+        },
+        _ => {
+            value = 6;
+        }
+    );
+    assert_eq!(value, 6);
+
     // Single entry
     fn find(input: &[u8]) -> Option<u32> {
         hashify::tiny_map! {
