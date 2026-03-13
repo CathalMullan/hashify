@@ -7,7 +7,7 @@
 _hashify_ is a Rust procedural macro crate designed to create perfect hashing maps and sets without any runtime dependencies. By combining traditional and modern hashing techniques, _hashify_ ensures exceptional speed and efficiency, making it a great tool for developers seeking optimal performance in their projects.
 
 It provides two distinct approaches for building maps and sets, tailored for different dataset sizes:
-- For **small maps** with fewer than 500 entries, _hashify_ uses a strategy similar to [GNU gperf](https://www.gnu.org/software/gperf/) with the `--switch` parameter. This approach is highly efficient and specifically optimized for small datasets. 
+- For **small maps** with fewer than 500 entries, _hashify_ uses a strategy similar to [GNU gperf](https://www.gnu.org/software/gperf/) with the `--switch` parameter. This approach is highly efficient and specifically optimized for small datasets.
 - For **larger datasets**, _hashify_ employs the [PTHash](https://arxiv.org/abs/2104.10402) algorithm. This Minimal Perfect Hashing algorithm ensures both compactness and speed, making it ideal for scaling to larger datasets without compromising performance.
 
 ## Performance
@@ -82,26 +82,24 @@ fn main() {
 
 Function maps:
 
-```rust
-fn main() {
-    hashify::fnc_map_ignore_case!(input.as_bytes(),
-        "ALL" => {
-            println!("All");
-        },
-        "FULL" => {
-            println!("Full");
-        },
-        "FAST" => {
-            println!("Fast");
-        },
-        "ENVELOPE" => {
-            println!("Envelope");
-        },
-        _ => {
-            eprintln!("Unknown command {input}");
-        }
-    );
-}
+```rust, no_run
+hashify::fnc_map_ignore_case!(input.as_bytes(),
+    "ALL" => {
+        println!("All");
+    },
+    "FULL" => {
+        println!("Full");
+    },
+    "FAST" => {
+        println!("Fast");
+    },
+    "ENVELOPE" => {
+        println!("Envelope");
+    },
+    _ => {
+        eprintln!("Unknown command {input}");
+    }
+);
 ```
 
 ## Testing, Fuzzing & Benchmarking

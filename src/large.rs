@@ -302,7 +302,7 @@ fn try_generate_phf(
             for entry in bucket_entries {
                 let destination = get_index(entry.hash, pilot_hash, codomain_len);
 
-                if map[destination as usize] != EMPTY {
+                if map[destination] != EMPTY {
                     continue 'pilots;
                 }
 
