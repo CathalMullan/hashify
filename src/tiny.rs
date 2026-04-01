@@ -4,13 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  */
 
-use std::collections::{BTreeMap, HashMap, HashSet};
-
+use crate::Key;
+use indexmap::IndexMap;
 use proc_macro::TokenStream;
 use quote::quote;
+use std::collections::HashSet;
 use syn::Expr;
-
-use crate::Key;
 
 #[derive(Debug, Clone)]
 pub(crate) enum Algorithm {
@@ -38,11 +37,11 @@ pub(crate) enum Value<'x> {
 
 pub fn build_tiny_map(
     name: Expr,
-    options: HashMap<&Key, Value>,
+    options: Vec<(&Key, Value)>,
     default: Value,
     ignore_case: bool,
 ) -> TokenStream {
-    let mut map: BTreeMap<usize, HashMap<&Key, Value>> = BTreeMap::new();
+    let mut map: IndexMap<usize, Vec<(&Key, Value)>> = IndexMap::new();
     let mut min_key_size = usize::MAX;
     let mut max_key_size = 0;
 
@@ -50,7 +49,7 @@ pub fn build_tiny_map(
         let key_size = key.len();
         min_key_size = min_key_size.min(key_size);
         max_key_size = max_key_size.max(key_size);
-        map.entry(key_size).or_default().insert(key, value.clone());
+        map.entry(key_size).or_default().push((key, value.clone()));
     }
 
     let (header, footer) = if matches!(default, Value::Expr(_)) {
@@ -120,7 +119,7 @@ pub fn build_tiny_map(
                         panic!(
                             "Failed to build lookup table for {} keys: {:?}",
                             keys.len(),
-                            keys.keys().collect::<Vec<_>>()
+                            keys.iter().map(|(k, _)| k).collect::<Vec<_>>()
                         )
                     });
                 quote! { #size => { #table } }
@@ -151,7 +150,7 @@ impl Algorithm {
 }
 
 pub(crate) fn try_hash<'x>(
-    keys: &HashMap<&'x Key, Value<'x>>,
+    keys: &Vec<(&'x Key, Value<'x>)>,
     default: &Value<'x>,
     size: usize,
     is_final_pass: bool,
@@ -163,7 +162,8 @@ pub(crate) fn try_hash<'x>(
             algorithm: Algorithm::Position { idx: 0 },
             positions: keys
                 .iter()
-                .collect::<BTreeMap<_, _>>()
+                .map(|(k, v)| (k, v))
+                .collect::<IndexMap<_, _>>()
                 .iter()
                 .map(|(key, value)| (key.as_bytes()[0], **key, (*value).clone()))
                 .collect(),
@@ -178,14 +178,15 @@ pub(crate) fn try_hash<'x>(
     for idx in 0..size {
         let mut byte_set = HashSet::new();
         let algorithm = Algorithm::Position { idx };
-        for key in keys.keys() {
+        for (key, _) in keys {
             byte_set.insert(algorithm.hash(key.as_bytes()));
         }
         if byte_set.len() == keys.len() {
             return Some(Table {
                 positions: keys
                     .iter()
-                    .collect::<BTreeMap<_, _>>()
+                    .map(|(k, v)| (k, v))
+                    .collect::<IndexMap<_, _>>()
                     .iter()
                     .map(|(key, value)| (algorithm.hash(key.as_bytes()), **key, (*value).clone()))
                     .collect(),
@@ -204,7 +205,7 @@ pub(crate) fn try_hash<'x>(
         for j in i + 1..size {
             let mut byte_set = HashSet::new();
             let algorithm = Algorithm::Xor { idx1: i, idx2: j };
-            for key in keys.keys() {
+            for (key, _) in keys {
                 byte_set.insert(algorithm.hash(key.as_bytes()));
             }
             if byte_set.len() == keys.len() {
@@ -212,7 +213,7 @@ pub(crate) fn try_hash<'x>(
                     positions: keys
                         .iter()
                         .map(|(key, value)| (algorithm.hash(key.as_bytes()), (*key, value.clone())))
-                        .collect::<BTreeMap<_, _>>()
+                        .collect::<IndexMap<_, _>>()
                         .into_iter()
                         .map(|(key, (a, b))| (key, a, b))
                         .collect(),
@@ -228,12 +229,12 @@ pub(crate) fn try_hash<'x>(
     }
 
     if is_final_pass {
-        let mut key_groups = HashMap::new();
+        let mut key_groups = IndexMap::new();
         for (key, value) in keys {
             key_groups
                 .entry(best_match_algo.hash(key.as_bytes()))
-                .or_insert_with(HashMap::new)
-                .insert(*key, value.clone());
+                .or_insert_with(Vec::new)
+                .push((*key, value.clone()));
         }
         let mut table = Table {
             algorithm: best_match_algo,
@@ -245,11 +246,9 @@ pub(crate) fn try_hash<'x>(
         for (hash, keys) in key_groups {
             if keys.len() > 1 {
                 let sub_table = try_hash(&keys, default, size, true, ignore_case).unwrap();
-                table.positions.push((
-                    hash,
-                    keys.keys().next().unwrap(),
-                    Value::Table(Box::new(sub_table)),
-                ));
+                table
+                    .positions
+                    .push((hash, keys[0].0, Value::Table(Box::new(sub_table))));
             } else {
                 let (key, value) = keys.into_iter().next().unwrap();
                 table.positions.push((hash, key, value));

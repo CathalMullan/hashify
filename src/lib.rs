@@ -19,7 +19,6 @@ mod tiny;
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use std::collections::HashMap;
 use syn::punctuated::Punctuated;
 use syn::{Error, ExprLit, Lit, LitByteStr, UnOp};
 use syn::{
@@ -242,7 +241,7 @@ pub fn tiny_map(input: TokenStream) -> TokenStream {
         pairs
             .iter()
             .map(|kv| (&kv.key, Value::Some(&kv.value)))
-            .collect::<HashMap<_, _>>(),
+            .collect::<Vec<_>>(),
         Value::None,
         false,
     )
@@ -261,7 +260,7 @@ pub fn tiny_map_ignore_case(input: TokenStream) -> TokenStream {
         lower_pairs
             .iter()
             .map(|(key, value)| (key, Value::Some(value)))
-            .collect::<HashMap<_, _>>(),
+            .collect::<Vec<_>>(),
         Value::None,
         true,
     )
@@ -280,7 +279,7 @@ pub fn fnc_map(input: TokenStream) -> TokenStream {
         pairs
             .iter()
             .map(|kv| (&kv.key, Value::Expr(&kv.value)))
-            .collect::<HashMap<_, _>>(),
+            .collect::<Vec<_>>(),
         Value::Expr(&default),
         false,
     )
@@ -304,7 +303,7 @@ pub fn fnc_map_ignore_case(input: TokenStream) -> TokenStream {
         lower_pairs
             .iter()
             .map(|(key, value)| (key, Value::Expr(value)))
-            .collect::<HashMap<_, _>>(),
+            .collect::<Vec<_>>(),
         Value::Expr(&default),
         true,
     )
@@ -316,10 +315,7 @@ pub fn tiny_set(input: TokenStream) -> TokenStream {
 
     build_tiny_map(
         name,
-        pairs
-            .iter()
-            .map(|kv| (kv, Value::True))
-            .collect::<HashMap<_, _>>(),
+        pairs.iter().map(|kv| (kv, Value::True)).collect::<Vec<_>>(),
         Value::False,
         false,
     )
@@ -339,7 +335,7 @@ pub fn tiny_set_ignore_case(input: TokenStream) -> TokenStream {
         lower_pairs
             .iter()
             .map(|key| (key, Value::True))
-            .collect::<HashMap<_, _>>(),
+            .collect::<Vec<_>>(),
         Value::False,
         true,
     )
